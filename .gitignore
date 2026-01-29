@@ -34,11 +34,7 @@ pnpm-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# IDE
-.idea
-.vscode
-*.swp
-*.swo
+
 
 # OS generated files
 .DS_Store
@@ -59,37 +55,6 @@ Thumbs.db
 .npm/
 .pnpm-store/ 
 
-# Java/Spring Boot
-# Maven build output
-target/
-
-# Maven wrapper
-.mvn/
-mvnw
-mvnw.cmd
-
-# Java compiled class files
-*.class
-
-# Java jar files
-*.jar
-*.war
-*.nar
-*.ear
-*.zip
-*.tar.gz
-*.rar
-
-# IDE - IntelliJ
-*.iml
-*.ipr
-*.iws
-
-# IDE - Eclipse
-.classpath
-.project
-.settings/
-
 # Log files
 logs/
 *.log
@@ -102,3 +67,5 @@ logs/
 .env
 .env.local
 .env.*.local
+
+easyarticle-backend/*

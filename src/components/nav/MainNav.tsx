@@ -5,8 +5,9 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Logo } from '@/components/icons/Logo'
-import { Github } from 'lucide-react'
+import { Github, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/lib/auth/context'
 
 const navigation = [
   { name: '微信公众号', href: '/wechat' },
@@ -18,6 +19,13 @@ const navigation = [
 
 export function MainNav() {
   const pathname = usePathname()
+  const { user, isLoggedIn, logout } = useAuth()
+
+  const handleLogout = () => {
+    logout()
+    // 跳转到首页
+    window.location.href = '/'
+  }
 
   return (
     <nav className="border-b border-gray-200 bg-background">
@@ -68,6 +76,23 @@ export function MainNav() {
                 <span className="sr-only">GitHub</span>
               </Link>
             </Button>
+            {isLoggedIn ? (
+              <div className="flex items-center space-x-2">
+                <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                  <User className="h-4 w-4" />
+                  <span className="hidden md:inline">{user?.email || '用户'}</span>
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  登出
+                </Button>
+              </div>
+            ) : (
+              <Button asChild size="sm">
+                <Link href="/login">
+                  登录
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       </div>

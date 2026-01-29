@@ -4,6 +4,7 @@ import './globals.css'
 import '@/styles/code-themes.css'
 import 'katex/dist/katex.min.css'
 import { ThemeProvider } from '@/components/theme/ThemeProvider'
+import { AuthProvider } from '@/lib/auth/context'
 import { cn } from '@/lib/utils'
 import { Toaster } from '@/components/ui/toaster'
 import { GoogleAnalytics } from '@/components/GoogleAnalytics'
@@ -48,15 +49,17 @@ export default function RootLayout({
         inter.className
       )}>
         <GoogleAnalytics />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )
