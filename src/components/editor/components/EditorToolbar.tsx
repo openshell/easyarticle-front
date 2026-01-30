@@ -19,6 +19,15 @@ import { CodeThemeSelector } from '../CodeThemeSelector'
 import { useLocalStorage } from '@/hooks/use-local-storage'
 import { codeThemes, type CodeThemeId } from '@/config/code-themes'
 
+interface Article {
+  id: number;
+  userId: number;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface EditorToolbarProps {
   value: string
   isDraft: boolean
@@ -28,11 +37,13 @@ interface EditorToolbarProps {
   codeTheme: CodeThemeId
   wordCount: string
   readingTime: string
+  articles: Article[]
+  isLoadingArticles: boolean
   onSave: () => void
   onCopy: () => Promise<boolean>
   onCopyPreview: () => Promise<boolean>
   onNewArticle: () => void
-  onArticleSelect: (article: { content: string, template: string }) => void
+  onArticleSelect: (article: Article) => void
   onTemplateSelect: (templateId: string) => void
   onTemplateChange: () => void
   onStyleOptionsChange: (options: RendererOptions) => void
@@ -60,6 +71,8 @@ export function EditorToolbar({
   onCodeThemeChange,
   wordCount,
   readingTime,
+  articles,
+  isLoadingArticles,
   onClear
 }: EditorToolbarProps) {
   const { toast } = useToast()
@@ -133,6 +146,8 @@ export function EditorToolbar({
                   onSelect={onArticleSelect}
                   currentContent={value}
                   onNew={onNewArticle}
+                  articles={articles}
+                  isLoading={isLoadingArticles}
                 />
               </div>
               <WechatStylePicker 

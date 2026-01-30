@@ -25,9 +25,21 @@ import { Copy } from 'lucide-react'
 import { MobileEditor } from './components/MobileEditor'
 import { DesktopEditor } from './components/DesktopEditor'
 import { getExampleContent } from '@/lib/utils/loadExampleContent'
+import { useAuth } from '@/lib/auth/context'
+import { getArticles, getArticle, createArticle, updateArticle, deleteArticle } from '@/lib/api/articles'
+
+interface Article {
+  id: number;
+  userId: number;
+  title: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function WechatEditor() {
   const { toast } = useToast()
+  const { user, isLoggedIn } = useAuth()
   const editorRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
@@ -40,9 +52,13 @@ export default function WechatEditor() {
   const [previewSize, setPreviewSize] = useState<PreviewSize>('medium')
   const [isDraft, setIsDraft] = useState(false)
   const [codeTheme, setCodeTheme] = useLocalStorage<CodeThemeId>('code-theme', codeThemes[0].id)
+  const [articles, setArticles] = useState<Article[]>([])
+  const [currentArticleId, setCurrentArticleId] = useState<number | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingArticles, setIsLoadingArticles] = useState(false)
 
   // 使用自定义 hooks
-  const { handleEditorChange } = useAutoSave(value, setIsDraft)
+  const { handleEditorChange } = useAutoSave(value, setIsDraft, currentArticleId)
   const { handleEditorScroll } = useScrollSync()
 
   // 清除编辑器内容
@@ -59,24 +75,58 @@ export default function WechatEditor() {
   }, [handleEditorChange, toast])
 
   // 手动保存
-  const handleSave = useCallback(() => {
-    try {
-      localStorage.setItem('wechat_editor_content', value)
-      setIsDraft(false)
-      toast({
-        title: "保存成功",
-        description: "内容已保存到本地",
-        duration: 3000
-      })
-    } catch (error) {
+  const handleSave = useCallback(async () => {
+    if (!isLoggedIn) {
       toast({
         variant: "destructive",
         title: "保存失败",
-        description: "无法保存内容，请检查浏览器存储空间",
-        action: <ToastAction altText="重试">重试</ToastAction>,
+        description: "请先登录",
+        duration: 3000
       })
+      return
     }
-  }, [value, toast])
+
+    try {
+      setIsLoading(true)
+      if (currentArticleId) {
+        // 更新现有文章
+        await updateArticle(currentArticleId, {
+          title: 'Untitled Article', // 暂时使用默认标题，后续可以让用户设置
+          content: value
+        })
+        toast({
+          title: "保存成功",
+          description: "内容已保存",
+          duration: 3000
+        })
+      } else {
+        // 创建新文章
+        const newArticle = await createArticle({
+          title: 'Untitled Article', // 暂时使用默认标题，后续可以让用户设置
+          content: value
+        })
+        setCurrentArticleId(newArticle.id)
+        // 重新加载文章列表
+        await loadArticles()
+        toast({
+          title: "保存成功",
+          description: "文章已创建并保存",
+          duration: 3000
+        })
+      }
+      setIsDraft(false)
+    } catch (error) {
+      console.error('保存失败:', error)
+      toast({
+        variant: "destructive",
+        title: "保存失败",
+        description: "无法保存内容，请检查网络连接",
+        action: <ToastAction altText="重试" onClick={handleSave}>重试</ToastAction>,
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }, [value, toast, isLoggedIn, currentArticleId])
 
   const { isConverting, previewContent } = usePreviewContent({
     value,
@@ -139,29 +189,86 @@ export default function WechatEditor() {
     return success
   }, [copyToClipboard, toast, previewRef])
 
+  // 加载用户的文章列表
+  const loadArticles = useCallback(async () => {
+    if (!isLoggedIn) return
+
+    try {
+      setIsLoadingArticles(true)
+      const articlesList = await getArticles()
+      setArticles(articlesList)
+    } catch (error) {
+      console.error('加载文章列表失败:', error)
+      toast({
+        variant: "destructive",
+        title: "加载失败",
+        description: "无法加载文章列表，请检查网络连接",
+        duration: 3000
+      })
+    } finally {
+      setIsLoadingArticles(false)
+    }
+  }, [isLoggedIn, toast])
+
   // 处理放弃草稿
-  const handleDiscardDraft = useCallback(() => {
-    const savedContent = localStorage.getItem('wechat_editor_content')
-    localStorage.removeItem('wechat_editor_draft')
-    setValue(savedContent || '')
-    setIsDraft(false)
-    toast({
-      title: "已放弃草稿",
-      description: "已恢复到上次保存的内容",
-      duration: 2000
-    })
-  }, [toast])
+  const handleDiscardDraft = useCallback(async () => {
+    if (currentArticleId) {
+      try {
+        // 重新加载当前文章
+        const article = await getArticle(currentArticleId)
+        setValue(article.content)
+        setIsDraft(false)
+        toast({
+          title: "已放弃草稿",
+          description: "已恢复到上次保存的内容",
+          duration: 2000
+        })
+      } catch (error) {
+        console.error('放弃草稿失败:', error)
+        toast({
+          variant: "destructive",
+          title: "操作失败",
+          description: "无法放弃草稿，请检查网络连接",
+          duration: 3000
+        })
+      }
+    } else {
+      // 如果没有当前文章，清空内容
+      setValue('')
+      setIsDraft(false)
+      toast({
+        title: "已放弃草稿",
+        description: "已清空编辑器内容",
+        duration: 2000
+      })
+    }
+  }, [toast, currentArticleId])
 
   // 处理文章选择
-  const handleArticleSelect = useCallback((article: { content: string, template: string }) => {
-    setValue(article.content)
-    setSelectedTemplate(article.template)
-    setIsDraft(false)
-    toast({
-      title: "加载成功",
-      description: "已加载选中的文章",
-      duration: 2000
-    })
+  const handleArticleSelect = useCallback(async (article: Article) => {
+    try {
+      setIsLoading(true)
+      // 直接使用传入的文章数据，因为已经是从后端获取的完整数据
+      setValue(article.content)
+      setCurrentArticleId(article.id)
+      setSelectedTemplate('default') // 暂时使用默认模板，后续可以在文章中存储模板信息
+      setIsDraft(false)
+      toast({
+        title: "加载成功",
+        description: `已加载文章: ${article.title}`,
+        duration: 2000
+      })
+    } catch (error) {
+      console.error('加载文章失败:', error)
+      toast({
+        variant: "destructive",
+        title: "加载失败",
+        description: "无法加载选中的文章，请检查网络连接",
+        duration: 3000
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }, [toast])
 
   // 处理新建文章
@@ -174,6 +281,7 @@ export default function WechatEditor() {
           <ToastAction altText="继续" onClick={() => {
             const exampleContent = getExampleContent()
             setValue(exampleContent)
+            setCurrentArticleId(null)
             setIsDraft(false)
           }}>
             继续
@@ -186,6 +294,7 @@ export default function WechatEditor() {
 
     const exampleContent = getExampleContent()
     setValue(exampleContent)
+    setCurrentArticleId(null)
     setIsDraft(false)
   }, [isDraft, toast])
 
@@ -252,30 +361,20 @@ export default function WechatEditor() {
 
   // 加载已保存的内容
   useEffect(() => {
-    const draftContent = localStorage.getItem('wechat_editor_draft')
-    const savedContent = localStorage.getItem('wechat_editor_content')
-    
-    if (draftContent) {
-      setValue(draftContent)
-      setIsDraft(true)
-      toast({
-        description: "已恢复未保存的草稿",
-        action: <ToastAction altText="放弃" onClick={handleDiscardDraft}>放弃草稿</ToastAction>,
-        duration: 5000,
-      })
-    } else if (savedContent) {
-      setValue(savedContent)
+    if (isLoggedIn) {
+      // 登录状态下，加载文章列表
+      loadArticles()
     } else {
-      // 如果没有保存的内容或草稿，则加载示例内容
+      // 未登录状态下，加载示例内容
       const exampleContent = getExampleContent()
       setValue(exampleContent)
       toast({
         title: "欢迎使用 easyarticle",
-        description: "已加载示例内容，您可以开始编辑或查看效果",
+        description: "请登录以保存和管理您的文章",
         duration: 3000,
       })
     }
-  }, [toast, handleDiscardDraft])
+  }, [isLoggedIn, loadArticles, toast])
 
   const { wordCount, readingTime } = useWordStats(value)
 
@@ -291,6 +390,8 @@ export default function WechatEditor() {
         codeTheme={codeTheme}
         wordCount={wordCount}
         readingTime={readingTime}
+        articles={articles}
+        isLoadingArticles={isLoadingArticles}
         onSave={handleSave}
         onCopy={handleCopy}
         onCopyPreview={handleCopy}

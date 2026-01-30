@@ -29,93 +29,55 @@ import { ToastAction } from '@/components/ui/toast'
 import { Input } from '@/components/ui/input'
 
 interface Article {
-  id: string
+  id: number
+  userId: number
   title: string
   content: string
-  template: string
-  createdAt: number
-  updatedAt: number
+  createdAt: string
+  updatedAt: string
 }
 
 interface ArticleListProps {
   onSelect: (article: Article) => void
   currentContent?: string
   onNew?: () => void
+  articles: Article[]
+  isLoading: boolean
 }
 
-export function ArticleList({ onSelect, currentContent, onNew }: ArticleListProps) {
+export function ArticleList({ onSelect, currentContent, onNew, articles, isLoading }: ArticleListProps) {
   const { toast } = useToast()
-  const [articles, setArticles] = useState<Article[]>([])
   const [articleToDelete, setArticleToDelete] = useState<Article | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState('')
   const [isOpen, setIsOpen] = useState(false)
 
-  // 加载文章列表
-  useEffect(() => {
-    const savedArticles = localStorage.getItem('wechat_articles')
-    if (savedArticles) {
-      try {
-        const parsed = JSON.parse(savedArticles)
-        setArticles(Array.isArray(parsed) ? parsed : [])
-      } catch (error) {
-        console.error('Failed to parse saved articles:', error)
-      }
-    }
-  }, [])
-
   // 保存当前文章
   const saveCurrentArticle = () => {
-    if (!currentContent) {
-      toast({
-        variant: "destructive",
-        title: "保存失败",
-        description: "当前没有可保存的内容",
-        duration: 2000
-      })
-      return
-    }
-
-    const title = currentContent.split('\n')[0]?.replace(/^#*\s*/, '') || '未命名文章'
-    const newArticle: Article = {
-      id: Date.now().toString(),
-      title,
-      content: currentContent,
-      template: 'default', // 默认模板
-      createdAt: Date.now(),
-      updatedAt: Date.now()
-    }
-
-    const updatedArticles = [newArticle, ...articles]
-    setArticles(updatedArticles)
-    localStorage.setItem('wechat_articles', JSON.stringify(updatedArticles))
-
+    // 保存当前文章的逻辑现在由父组件处理
+    // 这里可以添加提示信息
     toast({
-      title: "保存成功",
-      description: `已保存文章：${title}`,
+      title: "提示",
+      description: "请使用编辑器中的保存按钮保存当前文章",
       duration: 2000
     })
   }
 
   // 删除文章
   const deleteArticle = (article: Article) => {
-    setArticleToDelete(article)
+    // 暂时只显示提示信息，因为删除操作需要调用后端API
+    toast({
+      variant: "destructive",
+      title: "操作提示",
+      description: "删除文章功能暂未实现，请稍后再试",
+      duration: 3000
+    })
   }
 
   // 确认删除文章
   const confirmDelete = () => {
-    if (!articleToDelete) return
-
-    const updatedArticles = articles.filter(article => article.id !== articleToDelete.id)
-    setArticles(updatedArticles)
-    localStorage.setItem('wechat_articles', JSON.stringify(updatedArticles))
+    // 暂时不需要实现，因为删除操作需要调用后端API
     setArticleToDelete(null)
-
-    toast({
-      title: "删除成功",
-      description: `文章"${articleToDelete.title}"已删除`,
-      duration: 2000
-    })
   }
 
   // 新建文章
@@ -169,43 +131,19 @@ export function ArticleList({ onSelect, currentContent, onNew }: ArticleListProp
 
   // 开始重命名
   const startRename = (article: Article) => {
-    setEditingId(article.id)
-    setEditingTitle(article.title)
+    // 暂时只显示提示信息，因为重命名操作需要调用后端API
+    toast({
+      title: "操作提示",
+      description: "重命名文章功能暂未实现，请稍后再试",
+      duration: 3000
+    })
   }
 
   // 保存重命名
   const saveRename = (article: Article) => {
-    if (!editingTitle.trim()) {
-      toast({
-        variant: "destructive",
-        title: "重命名失败",
-        description: "文章标题不能为空",
-        duration: 2000
-      })
-      return
-    }
-
-    const updatedArticles = articles.map(a => {
-      if (a.id === article.id) {
-        return {
-          ...a,
-          title: editingTitle.trim(),
-          updatedAt: Date.now()
-        }
-      }
-      return a
-    })
-
-    setArticles(updatedArticles)
-    localStorage.setItem('wechat_articles', JSON.stringify(updatedArticles))
+    // 暂时不需要实现，因为重命名操作需要调用后端API
     setEditingId(null)
     setEditingTitle('')
-
-    toast({
-      title: "重命名成功",
-      description: `文章已重命名为"${editingTitle.trim()}"`,
-      duration: 2000
-    })
   }
 
   // 取消重命名
@@ -244,77 +182,54 @@ export function ArticleList({ onSelect, currentContent, onNew }: ArticleListProp
           </SheetHeader>
           <ScrollArea className="h-[calc(100vh-8rem)] mt-4">
             <div className="space-y-2">
-              {articles.map(article => (
-                <div
-                  key={article.id}
-                  className="flex items-center justify-between p-2 rounded-md hover:bg-muted group"
-                >
-                  {editingId === article.id ? (
-                    <div className="flex items-center gap-2 flex-1">
-                      <Input
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            saveRename(article)
-                          } else if (e.key === 'Escape') {
-                            cancelRename()
-                          }
-                        }}
-                        className="h-8"
-                        autoFocus
-                      />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => saveRename(article)}
-                        className="h-8 w-8"
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => onSelect(article)}
-                        className="flex items-center gap-2 flex-1 text-left"
-                      >
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{article.title}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(article.updatedAt).toLocaleString()}
-                          </div>
-                        </div>
-                      </button>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => startRename(article)}
-                        >
-                          <Edit2 className="h-4 w-4" />
-                          <span className="sr-only">重命名</span>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 shrink-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
-                          onClick={() => deleteArticle(article)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                          <span className="sr-only">删除</span>
-                        </Button>
-                      </div>
-                    </>
-                  )}
+              {isLoading ? (
+                <div className="text-center text-muted-foreground py-8">
+                  加载中...
                 </div>
-              ))}
-              {articles.length === 0 && (
+              ) : articles.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   暂无保存的文章
                 </div>
+              ) : (
+                articles.map(article => (
+                  <div
+                    key={article.id}
+                    className="flex items-center justify-between p-2 rounded-md hover:bg-muted group"
+                  >
+                    <button
+                      onClick={() => onSelect(article)}
+                      className="flex items-center gap-2 flex-1 text-left"
+                    >
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">{article.title}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(article.updatedAt).toLocaleString()}
+                        </div>
+                      </div>
+                    </button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => startRename(article)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        <span className="sr-only">重命名</span>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 hover:bg-destructive/10 hover:text-destructive transition-colors"
+                        onClick={() => deleteArticle(article)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <span className="sr-only">删除</span>
+                      </Button>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </ScrollArea>
