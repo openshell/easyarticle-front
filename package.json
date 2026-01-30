@@ -30,6 +30,7 @@
     "@types/katex": "^0.16.7",
     "@types/marked": "^6.0.0",
     "@types/prismjs": "^1.26.5",
+    "axios": "^1.13.4",
     "class-variance-authority": "^0.7.1",
     "clipboard-polyfill": "^4.1.1",
     "clsx": "^2.1.1",

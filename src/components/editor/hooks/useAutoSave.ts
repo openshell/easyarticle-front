@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { AUTO_SAVE_DELAY } from '../constants'
-import { updateArticle, createArticle } from '@/lib/api/articles'
+import { updateArticle, createArticle } from '@/lib/api'
 
 export function useAutoSave(value: string, setIsDraft: (isDraft: boolean) => void, currentArticleId: number | null) {
   const autoSaveTimerRef = useRef<NodeJS.Timeout>()

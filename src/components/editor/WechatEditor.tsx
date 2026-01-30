@@ -26,7 +26,7 @@ import { MobileEditor } from './components/MobileEditor'
 import { DesktopEditor } from './components/DesktopEditor'
 import { getExampleContent } from '@/lib/utils/loadExampleContent'
 import { useAuth } from '@/lib/auth/context'
-import { getArticles, getArticle, createArticle, updateArticle, deleteArticle } from '@/lib/api/articles'
+import { getArticles, getArticle, createArticle, updateArticle, deleteArticle } from '@/lib/api'
 
 interface Article {
   id: number;
