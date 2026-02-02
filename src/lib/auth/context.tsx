@@ -30,20 +30,50 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const token = localStorage.getItem('token')
         const userData = localStorage.getItem('user')
         
-        if (token && userData) {
-          setUser(JSON.parse(userData))
+        if (token && userData && userData !== 'undefined') {
+          try {
+            const parsedUserData = JSON.parse(userData)
+            if (parsedUserData) {
+              setUser(parsedUserData)
+            } else {
+              setUser(null)
+            }
+          } catch (parseError) {
+            console.error('解析用户数据失败:', parseError)
+            setUser(null)
+          }
+        } else {
+          // 如果没有token或用户数据，确保状态为null
+          setUser(null)
         }
       } catch (error) {
         console.error('检查登录状态失败:', error)
         // 清除可能损坏的存储
         localStorage.removeItem('token')
         localStorage.removeItem('user')
+        setUser(null)
       } finally {
         setIsLoading(false)
       }
     }
 
+    // 初始检查
     checkAuthStatus()
+
+    // 监听本地存储变化
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'token' || event.key === 'user') {
+        checkAuthStatus()
+      }
+    }
+
+    // 添加事件监听器
+    window.addEventListener('storage', handleStorageChange)
+
+    // 清理事件监听器
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+    }
   }, [])
 
   const login = async (email: string, password: string) => {
@@ -60,17 +90,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        throw new Error(errorData || '登录失败')
+        throw new Error(errorData?.message || '登录失败')
       }
 
-      const data = await response.json()
+      const apiResponse = await response.json()
       
-      // 存储到本地存储
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      
-      // 更新状态
-      setUser(data.user)
+      // 检查响应数据是否完整（后端返回的格式是 {code, message, data: {token, user}}）
+      if (apiResponse && apiResponse.data && apiResponse.data.token && apiResponse.data.user) {
+        const { token, user } = apiResponse.data
+        // 存储到本地存储
+        localStorage.setItem('token', token)
+        localStorage.setItem('user', JSON.stringify(user))
+        
+        // 更新状态
+        setUser(user)
+      } else {
+        throw new Error('登录响应数据不完整')
+      }
     } catch (error) {
       console.error('登录失败:', error)
       throw error

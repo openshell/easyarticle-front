@@ -41,4 +41,23 @@ apiClient.interceptors.request.use(
   }
 );
 
+// 响应拦截器
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    // 处理401错误
+    if (error.response && error.response.status === 401) {
+      // 清除本地存储的token和用户信息
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      
+      // 跳转到登录页面
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default apiClient;
