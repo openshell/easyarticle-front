@@ -102,6 +102,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('token', token)
         localStorage.setItem('user', JSON.stringify(user))
         
+        // 存储到cookie，以便中间件读取
+        document.cookie = `token=${token}; path=/; max-age=86400` // 24小时过期
+        
         // 更新状态
         setUser(user)
       } else {
@@ -119,6 +122,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // 清除本地存储
     localStorage.removeItem('token')
     localStorage.removeItem('user')
+    
+    // 清除cookie
+    document.cookie = 'token=; path=/; max-age=0'
     
     // 更新状态
     setUser(null)

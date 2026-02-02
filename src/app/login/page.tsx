@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,6 +18,11 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const { login, isLoading } = useAuth()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  // 获取重定向地址
+  const redirect = searchParams.get('redirect') || '/'
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -37,8 +43,8 @@ export default function LoginPage() {
 
     try {
       await login(email, password)
-      // 登录成功后会自动登录并跳转到首页
-      window.location.href = '/'
+      // 登录成功后重定向到之前的页面或首页
+      router.push(redirect)
     } catch (err) {
       setError('登录失败，请检查邮箱和密码')
       console.error('登录错误:', err)
